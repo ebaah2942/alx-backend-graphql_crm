@@ -1,21 +1,25 @@
 import graphene
 from graphene_django import DjangoObjectType
-from .models import Customer, Product, Order
 from django.core.validators import RegexValidator
 from django.utils import timezone
+from django.db import transaction
+from .models import Customer, Product, Order
+
 
 # -----------------------
-# GraphQL Types
+# GraphQL Object Types
 # -----------------------
 class CustomerType(DjangoObjectType):
     class Meta:
         model = Customer
         fields = "__all__"
 
+
 class ProductType(DjangoObjectType):
     class Meta:
         model = Product
         fields = "__all__"
+
 
 class OrderType(DjangoObjectType):
     class Meta:
@@ -37,11 +41,11 @@ class CreateCustomer(graphene.Mutation):
     customer = graphene.Field(CustomerType)
 
     def mutate(self, info, name, email, phone=None):
-        # Check for unique email
+        # Email uniqueness check
         if Customer.objects.filter(email=email).exists():
             return CreateCustomer(success=False, message="Email already exists", customer=None)
 
-        # Validate phone format if provided
+        # Phone format validation
         if phone:
             phone_validator = RegexValidator(
                 regex=r'^(\+\d{1,15}|\d{3}-\d{3}-\d{4})$',
@@ -78,24 +82,29 @@ class BulkCreateCustomers(graphene.Mutation):
         created = []
         errors = []
 
-        for data in customers:
-            try:
-                if Customer.objects.filter(email=data.email).exists():
-                    errors.append(f"Email already exists: {data.email}")
-                    continue
+        # Use transaction for partial commit behavior
+        with transaction.atomic():
+            for data in customers:
+                try:
+                    # Email uniqueness
+                    if Customer.objects.filter(email=data.email).exists():
+                        errors.append(f"Email already exists: {data.email}")
+                        continue
 
-                if data.phone:
-                    phone_validator = RegexValidator(
-                        regex=r'^(\+\d{1,15}|\d{3}-\d{3}-\d{4})$',
-                        message=f"Invalid phone format for {data.email}"
-                    )
-                    phone_validator(data.phone)
+                    # Phone validation
+                    if data.phone:
+                        phone_validator = RegexValidator(
+                            regex=r'^(\+\d{1,15}|\d{3}-\d{3}-\d{4})$',
+                            message=f"Invalid phone format for {data.email}"
+                        )
+                        phone_validator(data.phone)
 
-                customer = Customer(name=data.name, email=data.email, phone=data.phone)
-                customer.save()
-                created.append(customer)
-            except Exception as e:
-                errors.append(f"{data.email if data.email else 'Unknown'}: {str(e)}")
+                    customer = Customer(name=data.name, email=data.email, phone=data.phone)
+                    customer.save()
+                    created.append(customer)
+
+                except Exception as e:
+                    errors.append(f"{data.email if hasattr(data, 'email') else 'Unknown'}: {str(e)}")
 
         return BulkCreateCustomers(created_customers=created, errors=errors)
 
@@ -169,6 +178,9 @@ class CreateOrder(graphene.Mutation):
         return CreateOrder(success=True, message="Order created successfully", order=order)
 
 
+# -----------------------
+# Root Query Class
+# -----------------------
 class Query(graphene.ObjectType):
     customers = graphene.List(CustomerType)
     products = graphene.List(ProductType)
@@ -192,5 +204,3 @@ class Mutation(graphene.ObjectType):
     bulk_create_customers = BulkCreateCustomers.Field()
     create_product = CreateProduct.Field()
     create_order = CreateOrder.Field()
-
-
