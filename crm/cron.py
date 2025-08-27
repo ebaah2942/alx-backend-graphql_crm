@@ -1,5 +1,8 @@
 import datetime
 import requests
+from gql.transport.requests import RequestsHTTPTransport
+from gql import gql, Client
+
 
 def log_crm_heartbeat():
     """Log a heartbeat message and optionally query GraphQL hello field."""
