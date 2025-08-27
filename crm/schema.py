@@ -4,7 +4,7 @@ from django.core.validators import RegexValidator
 from django.utils import timezone
 from datetime import datetime
 from django.db import transaction
-from .models import Customer, Product, Order
+from crm.models import Customer, Product, Order
 from graphene_django.filter import DjangoFilterConnectionField
 from .filters import CustomerFilter, ProductFilter, OrderFilter
 
