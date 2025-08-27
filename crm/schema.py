@@ -8,6 +8,10 @@ from crm.models import Customer, Product, Order
 from graphene_django.filter import DjangoFilterConnectionField
 from .filters import CustomerFilter, ProductFilter, OrderFilter
 from crm.models import Product
+import graphene
+from crm.models import Order
+from crm.models import Customer
+from django.db.models import Sum
 
 
 
@@ -252,3 +256,21 @@ class UpdateLowStockProducts(graphene.Mutation):
 
 class Mutation(graphene.ObjectType):
     update_low_stock_products = UpdateLowStockProducts.Field()
+
+
+
+class Query(graphene.ObjectType):
+    total_customers = graphene.Int()
+    total_orders = graphene.Int()
+    total_revenue = graphene.Float()
+
+    def resolve_total_customers(root, info):
+        return Customer.objects.count()
+
+    def resolve_total_orders(root, info):
+        return Order.objects.count()
+
+    def resolve_total_revenue(root, info):
+        return Order.objects.aggregate(total=Sum("totalamount"))["total"] or 0.0
+
+schema = graphene.Schema(query=Query)    
