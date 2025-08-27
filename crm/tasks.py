@@ -2,6 +2,8 @@ from celery import shared_task
 from django.utils import timezone
 from graphene_django.settings import graphene_settings
 from graphene import Schema
+from datetime import datetime
+import requests
 
 @shared_task
 def generate_crm_report():

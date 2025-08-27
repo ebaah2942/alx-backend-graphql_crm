@@ -20,6 +20,6 @@ celery -A crm worker -l info
 celery -A crm beat -l info
 
 
-6. Check reports:
-cat /tmp/crm_report_log.txt
+6. Verify logs in /tmp/crm_report_log.txt
+
 
