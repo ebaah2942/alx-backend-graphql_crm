@@ -2,7 +2,7 @@ import datetime
 import requests
 from gql.transport.requests import RequestsHTTPTransport
 from gql import gql, Client
-from crm.models import Product
+
 
 
 def log_crm_heartbeat():
